@@ -1,0 +1,36 @@
+name: Checkmarx Scan
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+jobs:
+  security-scan:
+    permissions:
+      contents: read
+      security-events: write # to update results
+      actions: read # only required for a private repository
+      
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Checkmarx One scan
+        uses: checkmarx/ast-github-action@8e887bb93dacc44e0f5b64ee2b06d5815f89d4fc
+        with:
+          base_uri: https://ast.checkmarx.net
+          cx_client_id: ${{ vars.CXONE_CLIENT_ID }} 
+          cx_client_secret: ${{ secrets.CXONE_CLIENT_SECRET }}
+          cx_tenant: ${{ vars.CXONE_TENANT }}
+          additional_params: --report-format sarif --output-path . --project-groups "DevOpsDay25" # --threshold "sca-critical=5;sca-high=10;sast-critical=10;sast-high=30" 
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: cx_result.sarif
